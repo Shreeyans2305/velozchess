@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, MoveMessage } from "@shared/schema";
-import { Chess } from "chess.js";
 
 type UseGameSocketProps = {
   gameCode: string;
@@ -13,9 +12,13 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
   const socketRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
-    // Determine protocol (ws or wss) based on current window location
+    if (socketRef.current?.readyState === WebSocket.OPEN || socketRef.current?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws`;
@@ -26,14 +29,16 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socket.onopen = () => {
       setIsConnected(true);
       setLastError(null);
-      // Join the game room immediately upon connection
-      socket.send(JSON.stringify({ type: "join", code: gameCode }));
+      socket.send(JSON.stringify({ type: "join", code: gameCode, playerId: getPlayerId() }));
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
     };
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         switch (data.type) {
           case "game_state":
             onGameStateUpdate(data.game);
@@ -45,8 +50,6 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
               description: data.message,
             });
             break;
-          default:
-            console.log("Unknown message type:", data.type);
         }
       } catch (err) {
         console.error("Failed to parse WS message:", err);
@@ -55,21 +58,26 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
 
     socket.onclose = () => {
       setIsConnected(false);
-      // Simple reconnect logic could go here
+      // Attempt reconnect after 2 seconds
+      if (!reconnectTimeoutRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null;
+          connect();
+        }, 2000);
+      }
     };
 
     socket.onerror = () => {
       setLastError("Connection error");
     };
-
-    return () => {
-      socket.close();
-    };
   }, [gameCode, onGameStateUpdate, toast]);
 
   useEffect(() => {
-    const cleanup = connect();
-    return cleanup;
+    connect();
+    return () => {
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      socketRef.current?.close();
+    };
   }, [connect]);
 
   const sendMove = (move: { from: string; to: string; promotion?: string }) => {
@@ -86,10 +94,19 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
       toast({
         variant: "destructive",
         title: "Connection Lost",
-        description: "Cannot send move. Trying to reconnect...",
+        description: "Reconnecting to game server...",
       });
     }
   };
 
   return { isConnected, lastError, sendMove };
+}
+
+function getPlayerId() {
+  let id = localStorage.getItem('chess_player_id');
+  if (!id) {
+    id = Math.random().toString(36).substring(7);
+    localStorage.setItem('chess_player_id', id);
+  }
+  return id;
 }
