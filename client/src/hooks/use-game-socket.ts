@@ -15,6 +15,7 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
+    // If already connected or connecting, don't start another one
     if (socketRef.current?.readyState === WebSocket.OPEN || socketRef.current?.readyState === WebSocket.CONNECTING) {
       return;
     }
@@ -29,7 +30,10 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socket.onopen = () => {
       setIsConnected(true);
       setLastError(null);
-      socket.send(JSON.stringify({ type: "join", code: gameCode, playerId: getPlayerId() }));
+      // Ensure we only send if open (extra check for safety)
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "join", code: gameCode, playerId: getPlayerId() }));
+      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -67,8 +71,9 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
       }
     };
 
-    socket.onerror = () => {
+    socket.onerror = (e) => {
       setLastError("Connection error");
+      console.error("WebSocket error observed:", e);
     };
   }, [gameCode, onGameStateUpdate, toast]);
 
@@ -76,7 +81,15 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     connect();
     return () => {
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      socketRef.current?.close();
+      if (socketRef.current) {
+        // Remove listeners to avoid state updates on unmounted component
+        socketRef.current.onopen = null;
+        socketRef.current.onmessage = null;
+        socketRef.current.onclose = null;
+        socketRef.current.onerror = null;
+        socketRef.current.close();
+        socketRef.current = null;
+      }
     };
   }, [connect]);
 
