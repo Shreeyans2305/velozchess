@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,6 +13,9 @@ export const games = pgTable("games", {
   blackId: text("black_id"), // Socket/Session ID
   winner: text("winner"), // 'w', 'b', or 'draw'
   lastMove: jsonb("last_move"), // Store the last move for highlighting { from, to }
+  whiteTime: integer("white_time").notNull().default(600), // 10 minutes in seconds
+  blackTime: integer("black_time").notNull().default(600), // 10 minutes in seconds
+  lastMoveTime: timestamp("last_move_time").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

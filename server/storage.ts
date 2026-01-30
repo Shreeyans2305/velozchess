@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 export interface IStorage {
   createGame(): Promise<Game>;
   getGame(code: string): Promise<Game | undefined>;
-  updateGameState(code: string, fen: string, pgn: string, turn: string, lastMove: any): Promise<Game>;
+  updateGameState(code: string, fen: string, pgn: string, turn: string, lastMove: any, whiteTime: number, blackTime: number): Promise<Game>;
   setPlayer(code: string, role: 'w' | 'b', playerId: string): Promise<Game>;
   setWinner(code: string, winner: 'w' | 'b' | 'draw'): Promise<Game>;
 }
@@ -19,6 +19,8 @@ export class DatabaseStorage implements IStorage {
       pgn: "",
       turn: "w",
       status: "waiting",
+      whiteTime: 600,
+      blackTime: 600,
     }).returning();
     return game;
   }
@@ -28,9 +30,9 @@ export class DatabaseStorage implements IStorage {
     return game;
   }
 
-  async updateGameState(code: string, fen: string, pgn: string, turn: string, lastMove: any): Promise<Game> {
+  async updateGameState(code: string, fen: string, pgn: string, turn: string, lastMove: any, whiteTime: number, blackTime: number): Promise<Game> {
     const [game] = await db.update(games)
-      .set({ fen, pgn, turn, lastMove, status: "playing" })
+      .set({ fen, pgn, turn, lastMove, status: "playing", whiteTime, blackTime, lastMoveTime: new Date() })
       .where(eq(games.code, code))
       .returning();
     return game;
@@ -46,7 +48,7 @@ export class DatabaseStorage implements IStorage {
     // If both players joined, update status
     if (game.whiteId && game.blackId && game.status === "waiting") {
       const [started] = await db.update(games)
-        .set({ status: "playing" })
+        .set({ status: "playing", lastMoveTime: new Date() })
         .where(eq(games.code, code))
         .returning();
       return started;
