@@ -69,10 +69,18 @@ export async function registerRoutes(
             await storage.setPlayer(gameCode, 'b', playerId);
           }
 
+          const updatedGame = await storage.getGame(gameCode);
+          if (!updatedGame) return;
+
+          console.log(`[WebSocket] Player joined game ${gameCode}:`, {
+            whiteId: updatedGame.whiteId,
+            blackId: updatedGame.blackId,
+            status: updatedGame.status
+          });
+
           if (!rooms.has(gameCode)) rooms.set(gameCode, new Set());
           rooms.get(gameCode)!.add(ws);
 
-          const updatedGame = await storage.getGame(gameCode);
           broadcast(gameCode, { type: 'game_state', game: updatedGame });
         }
 

@@ -43,6 +43,12 @@ export default function GameRoom() {
   const { isConnected, sendMove } = useGameSocket({
     gameCode: code,
     onGameStateUpdate: (updatedGame) => {
+      console.log('[GameRoom] Game state updated:', {
+        status: updatedGame.status,
+        whiteId: updatedGame.whiteId,
+        blackId: updatedGame.blackId,
+        turn: updatedGame.turn
+      });
       setGame(updatedGame);
       chess.load(updatedGame.fen);
     },
@@ -74,7 +80,11 @@ export default function GameRoom() {
     }
   };
 
-  const isBoardVisible = game?.status === 'playing' || game?.status === 'checkmate' || game?.status === 'draw';
+  const isBoardVisible = 
+    game?.status === 'playing' || 
+    game?.status === 'checkmate' || 
+    game?.status === 'draw' ||
+    (game?.whiteId && game?.blackId);
 
   if (loading || !game) {
     return (
@@ -116,6 +126,16 @@ export default function GameRoom() {
           </div>
 
           <GameStatus game={game} playerRole={role} />
+
+          {/* Temporary Debug Info - Remove after fixing */}
+          {import.meta.env.MODE === 'development' && (
+            <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600 rounded text-xs font-mono">
+              <div>Status: {game?.status}</div>
+              <div>White: {game?.whiteId ? '✓' : '✗'}</div>
+              <div>Black: {game?.blackId ? '✓' : '✗'}</div>
+              <div>Board Visible: {isBoardVisible ? '✓' : '✗'}</div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className={`p-4 rounded-xl border ${game.turn === 'w' ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'}`}>

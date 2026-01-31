@@ -30,10 +30,13 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socket.onopen = () => {
       setIsConnected(true);
       setLastError(null);
-      // Ensure we only send if open (extra check for safety)
+      const joinMessage = { type: "join", code: gameCode, playerId: getPlayerId() };
+      console.log('[WebSocket] Sending join message:', joinMessage);
+      
       if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "join", code: gameCode, playerId: getPlayerId() }));
+        socket.send(JSON.stringify(joinMessage));
       }
+      
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
