@@ -80,11 +80,22 @@ export default function GameRoom() {
     }
   };
 
+  // Add extensive logging
+  console.log('[GameRoom] Board visibility check:', {
+    gameStatus: game?.status,
+    whiteId: game?.whiteId,
+    blackId: game?.blackId,
+    hasBothPlayers: !!(game?.whiteId && game?.blackId),
+    fen: game?.fen
+  });
+
   const isBoardVisible = 
     game?.status === 'playing' || 
     game?.status === 'checkmate' || 
     game?.status === 'draw' ||
-    (game?.whiteId && game?.blackId);
+    (!!game?.whiteId && !!game?.blackId);
+
+  console.log('[GameRoom] isBoardVisible result:', isBoardVisible);
 
   if (loading || !game) {
     return (
@@ -169,13 +180,29 @@ export default function GameRoom() {
 
         <div className="order-1 md:order-2">
           {isBoardVisible ? (
-            <ChessBoard 
-              fen={game.fen} 
-              onPieceDrop={onPieceDrop}
-              orientation={role === 'b' ? 'black' : 'white'}
-              lastMove={lastMove}
-              isInteractable={game.status === 'playing'}
-            />
+            <div className="w-full max-w-[600px] aspect-square flex flex-col">
+              {(() => {
+                try {
+                  console.log('[GameRoom] Attempting to render ChessBoard');
+                  return (
+                    <ChessBoard 
+                      fen={game.fen} 
+                      onPieceDrop={onPieceDrop}
+                      orientation={role === 'b' ? 'black' : 'white'}
+                      lastMove={lastMove}
+                      isInteractable={game.status === 'playing'}
+                    />
+                  );
+                } catch (error) {
+                  console.error('[GameRoom] Error rendering ChessBoard:', error);
+                  return (
+                    <div className="text-red-500 p-4 border border-red-500 rounded bg-card">
+                      Error rendering chess board: {String(error)}
+                    </div>
+                  );
+                }
+              })()}
+            </div>
           ) : (
             <div className="w-full max-w-[90vw] md:max-w-[600px] aspect-square flex flex-col items-center justify-center bg-card rounded-lg border-4 border-dashed border-muted-foreground/20">
               <Crown className="w-16 h-16 text-muted-foreground/20 mb-4" />

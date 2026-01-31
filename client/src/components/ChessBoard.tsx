@@ -18,6 +18,14 @@ export function ChessBoard({
   isInteractable = true
 }: ChessBoardProps) {
   
+  console.log('[ChessBoard] Rendering with props:', {
+    fen,
+    orientation,
+    lastMove,
+    isInteractable,
+    hasOnPieceDrop: !!onPieceDrop
+  });
+
   // Custom styling for squares based on last move
   const customSquareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
