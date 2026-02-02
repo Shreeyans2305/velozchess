@@ -51,6 +51,13 @@ export class DatabaseStorage implements IStorage {
         .set({ status: "playing", lastMoveTime: new Date() })
         .where(eq(games.code, code))
         .returning();
+      
+      console.log(`[Storage] Game ${code} starting - both players joined:`, {
+        whiteId: started.whiteId,
+        blackId: started.blackId,
+        status: started.status
+      });
+
       return started;
     }
     

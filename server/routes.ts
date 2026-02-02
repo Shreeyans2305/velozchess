@@ -62,14 +62,14 @@ export async function registerRoutes(
             return;
           }
 
-          // Assign Role
+          // Assign Role and get the updated game state
+          let updatedGame: any;
           if (game.whiteId === playerId || (!game.whiteId && game.blackId !== playerId)) {
-            await storage.setPlayer(gameCode, 'w', playerId);
+            updatedGame = await storage.setPlayer(gameCode, 'w', playerId);
           } else if (game.blackId === playerId || !game.blackId) {
-            await storage.setPlayer(gameCode, 'b', playerId);
+            updatedGame = await storage.setPlayer(gameCode, 'b', playerId);
           }
 
-          const updatedGame = await storage.getGame(gameCode);
           if (!updatedGame) return;
 
           console.log(`[WebSocket] Player joined game ${gameCode}:`, {
