@@ -7,7 +7,10 @@ type UseGameSocketProps = {
   onGameStateUpdate: (game: Game) => void;
 };
 
-export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProps) {
+export function useGameSocket({
+  gameCode,
+  onGameStateUpdate,
+}: UseGameSocketProps) {
   const { toast } = useToast();
   const socketRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -16,7 +19,10 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
 
   const connect = useCallback(() => {
     // If already connected or connecting, don't start another one
-    if (socketRef.current?.readyState === WebSocket.OPEN || socketRef.current?.readyState === WebSocket.CONNECTING) {
+    if (
+      socketRef.current?.readyState === WebSocket.OPEN ||
+      socketRef.current?.readyState === WebSocket.CONNECTING
+    ) {
       return;
     }
 
@@ -24,25 +30,29 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws`;
 
-    console.log('[WebSocket] Attempting to connect to:', wsUrl);
+    console.log("[WebSocket] Attempting to connect to:", wsUrl);
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
-    
+
     let hasConnected = false; // Track if connection was ever successful
 
     socket.onopen = () => {
-      console.log('[WebSocket] Connection opened successfully');
+      console.log("[WebSocket] Connection opened successfully");
       hasConnected = true;
       setIsConnected(true);
       setLastError(null);
-      
+
       // Ensure we only send if open (extra check for safety)
       if (socket.readyState === WebSocket.OPEN) {
-        const joinMsg = { type: "join", code: gameCode, playerId: getPlayerId() };
-        console.log('[WebSocket] Sending join message:', joinMsg);
+        const joinMsg = {
+          type: "join",
+          code: gameCode,
+          playerId: getPlayerId(),
+        };
+        console.log("[WebSocket] Sending join message:", joinMsg);
         socket.send(JSON.stringify(joinMsg));
       }
-      
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -52,20 +62,20 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('[WebSocket] Received message:', data);
-        
+        console.log("[WebSocket] Received message:", data);
+
         switch (data.type) {
           case "game_state":
-            console.log('[WebSocket] Game state update:', {
+            console.log("[WebSocket] Game state update:", {
               status: data.game.status,
               whiteId: data.game.whiteId,
               blackId: data.game.blackId,
-              fen: data.game.fen
+              fen: data.game.fen,
             });
             onGameStateUpdate(data.game);
             break;
           case "error":
-            console.error('[WebSocket] Server error:', data.message);
+            console.error("[WebSocket] Server error:", data.message);
             toast({
               variant: "destructive",
               title: "Error",
@@ -79,31 +89,33 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     };
 
     socket.onclose = (event) => {
-      console.log('[WebSocket] Connection closed:', { 
-        code: event.code, 
+      console.log("[WebSocket] Connection closed:", {
+        code: event.code,
         reason: event.reason,
         wasClean: event.wasClean,
-        hadConnected: hasConnected 
+        hadConnected: hasConnected,
       });
-      
+
       setIsConnected(false);
-      
+
       // Only attempt reconnect if we had successfully connected before
       // This prevents infinite reconnection loops on initial connection failure
       if (hasConnected && !reconnectTimeoutRef.current) {
-        console.log('[WebSocket] Will attempt reconnection in 2 seconds');
+        console.log("[WebSocket] Will attempt reconnection in 2 seconds");
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnectTimeoutRef.current = null;
           connect();
         }, 2000);
       } else if (!hasConnected) {
-        console.error('[WebSocket] Initial connection failed - not attempting reconnect');
+        console.error(
+          "[WebSocket] Initial connection failed - not attempting reconnect",
+        );
         setLastError("Failed to connect to game server");
       }
     };
 
     socket.onerror = (e) => {
-      console.error('[WebSocket] Error occurred:', e);
+      console.error("[WebSocket] Error occurred:", e);
       setLastError("Connection error");
     };
   }, [gameCode, onGameStateUpdate, toast]);
@@ -111,7 +123,8 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
   useEffect(() => {
     connect();
     return () => {
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
       if (socketRef.current) {
         // Remove listeners to avoid state updates on unmounted component
         socketRef.current.onopen = null;
@@ -122,7 +135,7 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
         socketRef.current = null;
       }
     };
-  }, [connect]);
+  }, []);
 
   const sendMove = (move: { from: string; to: string; promotion?: string }) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -147,10 +160,10 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
 }
 
 function getPlayerId() {
-  let id = localStorage.getItem('chess_player_id');
+  let id = localStorage.getItem("chess_player_id");
   if (!id) {
     id = Math.random().toString(36).substring(7);
-    localStorage.setItem('chess_player_id', id);
+    localStorage.setItem("chess_player_id", id);
   }
   return id;
 }
