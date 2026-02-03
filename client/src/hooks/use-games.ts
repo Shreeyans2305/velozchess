@@ -14,6 +14,9 @@ export function useCreateGame() {
       return await res.json();
     },
     onSuccess: (data) => {
+      // Creator is always white
+      sessionStorage.setItem(`game_role_${data.code}`, 'w');
+      console.log('[Create Game] Role assigned: white for game:', data.code);
       setLocation(`/game/${data.code}`);
     },
   });
@@ -38,6 +41,9 @@ export function useJoinGame() {
       return await res.json();
     },
     onSuccess: (data) => {
+      // Save the player's role (white, black, or spectator)
+      sessionStorage.setItem(`game_role_${data.game.code}`, data.role);
+      console.log('[Join Game] Role assigned:', data.role, 'for game:', data.game.code);
       setLocation(`/game/${data.game.code}`);
     },
   });
