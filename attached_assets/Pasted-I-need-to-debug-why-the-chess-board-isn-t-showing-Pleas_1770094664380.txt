@@ -1,0 +1,63 @@
+I need to debug why the chess board isn't showing. Please follow these exact steps:
+
+1. First verify react-chessboard is installed:
+   npm list react-chessboard
+
+2. If not installed, run:
+   npm install react-chessboard@4.7.3
+
+3. In GameRoom.tsx, find the board rendering section (around line 182-214) 
+   and replace it with visible debug boxes that will show:
+   - A RED box showing if "isBoardVisible" is true/false
+   - A YELLOW box that always tries to render the board
+   - A GREEN box if the normal condition is met
+   - Information about game status, whiteId, and blackId
+
+4. Add this code to the board rendering section:
+
+<div className="order-1 md:order-2 space-y-4">
+  {/* VISIBLE DEBUG INFO */}
+  <div className="p-4 bg-red-500 text-white font-bold text-center">
+    DEBUG: Board should be visible = {String(isBoardVisible)}
+  </div>
+  
+  {/* ALWAYS TRY TO RENDER BOARD (for testing) */}
+  <div className="w-full max-w-[600px] aspect-square border-8 border-yellow-500">
+    <div className="bg-yellow-500 text-black p-2 font-bold">
+      TESTING: Force rendering board
+    </div>
+    <ChessBoard 
+      fen={game.fen} 
+      onPieceDrop={onPieceDrop}
+      orientation={role === 'b' ? 'black' : 'white'}
+      lastMove={lastMove}
+      isInteractable={game.status === 'playing'}
+    />
+  </div>
+
+  {/* ORIGINAL CONDITIONAL RENDER */}
+  {isBoardVisible ? (
+    <div className="w-full max-w-[600px] aspect-square border-4 border-green-500">
+      <div className="bg-green-500 text-black p-2 font-bold">
+        NORMAL: Board visible condition met
+      </div>
+      <ChessBoard 
+        fen={game.fen} 
+        onPieceDrop={onPieceDrop}
+        orientation={role === 'b' ? 'black' : 'white'}
+        lastMove={lastMove}
+        isInteractable={game.status === 'playing'}
+      />
+    </div>
+  ) : (
+    <div className="w-full aspect-square bg-red-900 text-white p-8 text-center border-4 border-red-500">
+      <p className="text-2xl font-bold mb-4">Board NOT visible</p>
+      <p>isBoardVisible = {String(isBoardVisible)}</p>
+      <p>status = {game?.status}</p>
+      <p>whiteId = {game?.whiteId || 'missing'}</p>
+      <p>blackId = {game?.blackId || 'missing'}</p>
+    </div>
+  )}
+</div>
+
+5. Restart the dev server and test with two browser windows

@@ -80,22 +80,11 @@ export default function GameRoom() {
     }
   };
 
-  // Add extensive logging
-  console.log('[GameRoom] Board visibility check:', {
-    gameStatus: game?.status,
-    whiteId: game?.whiteId,
-    blackId: game?.blackId,
-    hasBothPlayers: !!(game?.whiteId && game?.blackId),
-    fen: game?.fen
-  });
-
   const isBoardVisible = 
     game?.status === 'playing' || 
     game?.status === 'checkmate' || 
     game?.status === 'draw' ||
     (!!game?.whiteId && !!game?.blackId);
-
-  console.log('[GameRoom] isBoardVisible result:', isBoardVisible);
 
   if (loading || !game) {
     return (
@@ -138,7 +127,6 @@ export default function GameRoom() {
 
           <GameStatus game={game} playerRole={role} />
 
-          {/* Temporary Debug Info - Remove after fixing */}
           {import.meta.env.MODE === 'development' && (
             <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600 rounded text-xs font-mono">
               <div>Status: {game?.status}</div>
@@ -178,38 +166,47 @@ export default function GameRoom() {
           )}
         </div>
 
-        <div className="order-1 md:order-2">
+        <div className="order-1 md:order-2 space-y-4">
+          {/* VISIBLE DEBUG INFO */}
+          <div className="p-4 bg-red-500 text-white font-bold text-center">
+            DEBUG: Board should be visible = {String(isBoardVisible)}
+          </div>
+          
+          {/* ALWAYS TRY TO RENDER BOARD (for testing) */}
+          <div className="w-full max-w-[600px] aspect-square border-8 border-yellow-500">
+            <div className="bg-yellow-500 text-black p-2 font-bold">
+              TESTING: Force rendering board
+            </div>
+            <ChessBoard 
+              fen={game.fen} 
+              onPieceDrop={onPieceDrop}
+              orientation={role === 'b' ? 'black' : 'white'}
+              lastMove={lastMove}
+              isInteractable={game.status === 'playing'}
+            />
+          </div>
+
+          {/* ORIGINAL CONDITIONAL RENDER */}
           {isBoardVisible ? (
-            <div className="w-full max-w-[600px] aspect-square flex flex-col">
-              {(() => {
-                try {
-                  console.log('[GameRoom] Attempting to render ChessBoard');
-                  return (
-                    <ChessBoard 
-                      fen={game.fen} 
-                      onPieceDrop={onPieceDrop}
-                      orientation={role === 'b' ? 'black' : 'white'}
-                      lastMove={lastMove}
-                      isInteractable={game.status === 'playing'}
-                    />
-                  );
-                } catch (error) {
-                  console.error('[GameRoom] Error rendering ChessBoard:', error);
-                  return (
-                    <div className="text-red-500 p-4 border border-red-500 rounded bg-card">
-                      Error rendering chess board: {String(error)}
-                    </div>
-                  );
-                }
-              })()}
+            <div className="w-full max-w-[600px] aspect-square border-4 border-green-500">
+              <div className="bg-green-500 text-black p-2 font-bold">
+                NORMAL: Board visible condition met
+              </div>
+              <ChessBoard 
+                fen={game.fen} 
+                onPieceDrop={onPieceDrop}
+                orientation={role === 'b' ? 'black' : 'white'}
+                lastMove={lastMove}
+                isInteractable={game.status === 'playing'}
+              />
             </div>
           ) : (
-            <div className="w-full max-w-[90vw] md:max-w-[600px] aspect-square flex flex-col items-center justify-center bg-card rounded-lg border-4 border-dashed border-muted-foreground/20">
-              <Crown className="w-16 h-16 text-muted-foreground/20 mb-4" />
-              <p className="text-muted-foreground font-medium">Waiting for opponent to join...</p>
-              <div className="mt-6">
-                <CopyCode code={game.code} />
-              </div>
+            <div className="w-full aspect-square bg-red-900 text-white p-8 text-center border-4 border-red-500">
+              <p className="text-2xl font-bold mb-4">Board NOT visible</p>
+              <p>isBoardVisible = {String(isBoardVisible)}</p>
+              <p>status = {game?.status}</p>
+              <p>whiteId = {game?.whiteId || 'missing'}</p>
+              <p>blackId = {game?.blackId || 'missing'}</p>
             </div>
           )}
         </div>
