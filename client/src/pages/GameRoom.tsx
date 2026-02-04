@@ -42,12 +42,6 @@ export default function GameRoom() {
 
   // Stable callback that doesn't change on every render
   const handleGameStateUpdate = useCallback((updatedGame: Game) => {
-    console.log('[GameRoom] Game state updated:', {
-      status: updatedGame.status,
-      whiteId: updatedGame.whiteId,
-      blackId: updatedGame.blackId,
-      turn: updatedGame.turn
-    });
     setGame(updatedGame);
     chess.load(updatedGame.fen);
   }, [chess]);
@@ -88,16 +82,6 @@ export default function GameRoom() {
     game?.status === 'checkmate' || 
     game?.status === 'draw' ||
     (!!game?.whiteId && !!game?.blackId);
-
-  // Detailed logging
-  console.log('[GameRoom] Render check:', {
-    isBoardVisible,
-    status: game?.status,
-    whiteId: game?.whiteId,
-    blackId: game?.blackId,
-    role,
-    fen: game?.fen,
-  });
 
   if (loading || !game) {
     return (
@@ -171,45 +155,14 @@ export default function GameRoom() {
         </div>
 
         <div className="order-1 md:order-2">
-          {/* Debug info */}
-          <div className="mb-4 p-4 bg-blue-600 text-white font-bold rounded">
-            <div>Board Visible: {String(isBoardVisible)}</div>
-            <div>Status: {game?.status}</div>
-            <div>Role: {role}</div>
-            <div>White: {game?.whiteId ? '✓' : '✗'}</div>
-            <div>Black: {game?.blackId ? '✓' : '✗'}</div>
-          </div>
-
-          {/* Always render board for testing */}
-          <div className="mb-4">
-            <div className="bg-yellow-500 text-black p-2 font-bold text-center">
-              TEST: Board Always Rendered
-            </div>
-            {game && (
-              <ChessBoard 
-                fen={game.fen} 
-                onPieceDrop={onPieceDrop}
-                orientation={role === 'b' ? 'black' : 'white'}
-                lastMove={lastMove}
-                isInteractable={game.status === 'playing'}
-              />
-            )}
-          </div>
-
-          {/* Conditional render */}
           {isBoardVisible ? (
-            <div>
-              <div className="bg-green-500 text-black p-2 font-bold text-center">
-                NORMAL: Condition Met - Board Shown
-              </div>
-              <ChessBoard 
-                fen={game.fen} 
-                onPieceDrop={onPieceDrop}
-                orientation={role === 'b' ? 'black' : 'white'}
-                lastMove={lastMove}
-                isInteractable={game.status === 'playing'}
-              />
-            </div>
+            <ChessBoard 
+              fen={game.fen} 
+              onPieceDrop={onPieceDrop}
+              orientation={role === 'b' ? 'black' : 'white'}
+              lastMove={lastMove}
+              isInteractable={game.status === 'playing'}
+            />
           ) : (
             <div className="w-full max-w-[90vw] md:max-w-[600px] aspect-square flex flex-col items-center justify-center bg-card rounded-lg border-4 border-dashed border-muted-foreground/20">
               <Crown className="w-16 h-16 text-muted-foreground/20 mb-4" />

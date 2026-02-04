@@ -31,13 +31,11 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log('[WebSocket] Connection opened successfully');
       hasConnectedRef.current = true;
       setIsConnected(true);
       
       if (socket.readyState === WebSocket.OPEN) {
         const joinMsg = { type: "join", code: gameCode, playerId: getPlayerId() };
-        console.log('[WebSocket] Sending join message:', joinMsg);
         socket.send(JSON.stringify(joinMsg));
       }
     };
@@ -45,17 +43,10 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('[WebSocket] Received message:', data.type);
         
         if (data.type === "game_state") {
-          console.log('[WebSocket] Game state update:', {
-            status: data.game.status,
-            whiteId: data.game.whiteId,
-            blackId: data.game.blackId,
-          });
           onGameStateUpdate(data.game);
         } else if (data.type === "error") {
-          console.error('[WebSocket] Server error:', data.message);
           toast({
             variant: "destructive",
             title: "Error",
@@ -68,12 +59,10 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     };
 
     socket.onclose = (event) => {
-      console.log('[WebSocket] Connection closed:', event.code);
       setIsConnected(false);
       
       // Only reconnect if we had connected before
       if (hasConnectedRef.current && !reconnectTimeoutRef.current) {
-        console.log('[WebSocket] Will attempt reconnection in 2 seconds');
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnectTimeoutRef.current = null;
           hasConnectedRef.current = false;
