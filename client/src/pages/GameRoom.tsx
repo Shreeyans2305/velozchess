@@ -16,10 +16,10 @@ export default function GameRoom() {
   const [, params] = useRoute("/game/:code");
   const [, setLocation] = useLocation();
   const code = params?.code!;
-  
+
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<'w' | 'b' | 'spectator'>('spectator');
+  const [role, setRole] = useState<"w" | "b" | "spectator">("spectator");
 
   const chess = useMemo(() => new Chess(), []);
 
@@ -41,20 +41,27 @@ export default function GameRoom() {
   }, [code, chess, setLocation]);
 
   // Stable callback that doesn't change on every render
-  const handleGameStateUpdate = useCallback((updatedGame: Game) => {
-    setGame(updatedGame);
-    chess.load(updatedGame.fen);
-  }, [chess]);
+  const handleGameStateUpdate = useCallback(
+    (updatedGame: Game) => {
+      setGame(updatedGame);
+      chess.load(updatedGame.fen);
+    },
+    [chess],
+  );
 
   const { isConnected, sendMove } = useGameSocket({
     gameCode: code,
     onGameStateUpdate: handleGameStateUpdate,
   });
 
-  const onPieceDrop = (sourceSquare: Square, targetSquare: Square, piece: string) => {
+  const onPieceDrop = (
+    sourceSquare: Square,
+    targetSquare: Square,
+    piece: string,
+  ) => {
     if (!game) return false;
     if (game.turn !== role) return false;
-    if (game.status !== 'playing') return false; 
+    if (game.status !== "playing") return false;
 
     try {
       const move = chess.move({
@@ -77,10 +84,10 @@ export default function GameRoom() {
     }
   };
 
-  const isBoardVisible = 
-    game?.status === 'playing' || 
-    game?.status === 'checkmate' || 
-    game?.status === 'draw' ||
+  const isBoardVisible =
+    game?.status === "playing" ||
+    game?.status === "checkmate" ||
+    game?.status === "draw" ||
     (!!game?.whiteId && !!game?.blackId);
 
   if (loading || !game) {
@@ -101,7 +108,7 @@ export default function GameRoom() {
     <div className="min-h-screen flex flex-col items-center p-4 bg-background relative">
       <AnimatePresence>
         {!isConnected && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
@@ -116,7 +123,12 @@ export default function GameRoom() {
       <div className="w-full max-w-4xl flex flex-col md:flex-row gap-8 items-center md:items-start justify-center mt-4 md:mt-12">
         <div className="w-full md:w-64 flex flex-col gap-6 order-2 md:order-1">
           <div className="flex items-center gap-2 mb-4">
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLocation("/")}
+              className="rounded-full"
+            >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <h2 className="font-bold text-xl">Game Room</h2>
@@ -125,29 +137,47 @@ export default function GameRoom() {
           <GameStatus game={game} playerRole={role} />
 
           <div className="space-y-3">
-            <div className={`p-4 rounded-xl border ${game.turn === 'w' ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'}`}>
+            <div
+              className={`p-4 rounded-xl border ${game.turn === "w" ? "bg-primary/10 border-primary/30" : "bg-card border-border"}`}
+            >
               <div className="text-xs uppercase text-muted-foreground font-bold tracking-wider mb-1 flex justify-between">
                 <span>White</span>
-                <span className="font-mono">{Math.floor(game.whiteTime / 60)}:{(game.whiteTime % 60).toString().padStart(2, '0')}</span>
+                <span className="font-mono">
+                  {Math.floor(game.whiteTime / 60)}:
+                  {(game.whiteTime % 60).toString().padStart(2, "0")}
+                </span>
               </div>
               <div className="font-medium flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
-                {game.whiteId ? (role === 'w' ? "You" : "Opponent") : "Waiting..."}
+                {game.whiteId
+                  ? role === "w"
+                    ? "You"
+                    : "Opponent"
+                  : "Waiting..."}
               </div>
             </div>
-            <div className={`p-4 rounded-xl border ${game.turn === 'b' ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'}`}>
+            <div
+              className={`p-4 rounded-xl border ${game.turn === "b" ? "bg-primary/10 border-primary/30" : "bg-card border-border"}`}
+            >
               <div className="text-xs uppercase text-muted-foreground font-bold tracking-wider mb-1 flex justify-between">
                 <span>Black</span>
-                <span className="font-mono">{Math.floor(game.blackTime / 60)}:{(game.blackTime % 60).toString().padStart(2, '0')}</span>
+                <span className="font-mono">
+                  {Math.floor(game.blackTime / 60)}:
+                  {(game.blackTime % 60).toString().padStart(2, "0")}
+                </span>
               </div>
               <div className="font-medium flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-black border border-white/20" />
-                {game.blackId ? (role === 'b' ? "You" : "Opponent") : "Waiting..."}
+                {game.blackId
+                  ? role === "b"
+                    ? "You"
+                    : "Opponent"
+                  : "Waiting..."}
               </div>
             </div>
           </div>
 
-          {game.status === 'waiting' && (
+          {game.status === "waiting" && (
             <div className="mt-4 p-4 bg-secondary/30 rounded-xl border border-white/5">
               <CopyCode code={game.code} />
             </div>
@@ -155,18 +185,25 @@ export default function GameRoom() {
         </div>
 
         <div className="order-1 md:order-2">
+          <div className="p-2 bg-red-500 text-white rounded mb-2 text-xs">
+            isBoardVisible = {String(isBoardVisible)}, 
+            status = {game?.status}, 
+            role = {role}
+          </div>
           {isBoardVisible ? (
-            <ChessBoard 
-              fen={game.fen} 
+            <ChessBoard
+              fen={game.fen}
               onPieceDrop={onPieceDrop}
-              orientation={role === 'b' ? 'black' : 'white'}
+              orientation={role === "b" ? "black" : "white"}
               lastMove={lastMove}
-              isInteractable={game.status === 'playing'}
+              isInteractable={game.status === "playing"}
             />
           ) : (
             <div className="w-full max-w-[90vw] md:max-w-[600px] aspect-square flex flex-col items-center justify-center bg-card rounded-lg border-4 border-dashed border-muted-foreground/20">
               <Crown className="w-16 h-16 text-muted-foreground/20 mb-4" />
-              <p className="text-muted-foreground font-medium">Waiting for opponent to join...</p>
+              <p className="text-muted-foreground font-medium">
+                Waiting for opponent to join...
+              </p>
               <div className="mt-6">
                 <CopyCode code={game.code} />
               </div>
