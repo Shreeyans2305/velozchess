@@ -8,6 +8,7 @@ interface ChessBoardProps {
   orientation?: "white" | "black";
   lastMove?: { from: string; to: string } | null;
   isInteractable?: boolean;
+  preMove?: { from: string; to: string } | null;
 }
 
 export function ChessBoard({ 
@@ -15,7 +16,8 @@ export function ChessBoard({
   onPieceDrop, 
   orientation = "white",
   lastMove,
-  isInteractable = true
+  isInteractable = true,
+  preMove
 }: ChessBoardProps) {
   
   // Custom styling for squares based on last move
@@ -25,11 +27,15 @@ export function ChessBoard({
       styles[lastMove.from] = { backgroundColor: 'rgba(255, 255, 0, 0.4)' };
       styles[lastMove.to] = { backgroundColor: 'rgba(255, 255, 0, 0.4)' };
     }
+    if (preMove) {
+      styles[preMove.from] = { backgroundColor: 'rgba(255, 0, 0, 0.4)' };
+      styles[preMove.to] = { backgroundColor: 'rgba(255, 0, 0, 0.4)' };
+    }
     return styles;
-  }, [lastMove]);
+  }, [lastMove, preMove]);
 
   return (
-    <div className="w-full max-w-[90vw] md:max-w-[600px] aspect-square shadow-2xl shadow-black/50 rounded-lg overflow-hidden border-4 border-secondary/50">
+    <div className="w-full max-w-[95vw] md:max-w-[700px] lg:max-w-[800px] aspect-square shadow-2xl shadow-black/50 rounded-lg overflow-hidden border-4 border-secondary/50">
       <Chessboard 
         position={fen} 
         onPieceDrop={onPieceDrop}

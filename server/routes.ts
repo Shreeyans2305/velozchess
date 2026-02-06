@@ -33,9 +33,47 @@ export async function registerRoutes(
   });
 
   app.get(api.games.get.path, async (req, res) => {
-    const game = await storage.getGame(req.params.code);
+    const code = req.params.code as string;
+    const game = await storage.getGame(code);
     if (!game) return res.status(404).json({ message: "Game not found" });
     res.json(game);
+  });
+
+  // Resign endpoint
+  app.post('/api/games/:code/resign', async (req, res) => {
+    const { code } = req.params;
+    const { role } = req.body;
+    
+    const game = await storage.getGame(code);
+    if (!game || game.status !== 'playing') {
+      return res.status(400).json({ message: 'Cannot resign this game' });
+    }
+    
+    const winner = role === 'w' ? 'b' : 'w';
+    await storage.setWinner(code, winner);
+    
+    const updatedGame = await storage.getGame(code);
+    if (rooms.has(code)) {
+      const payload = JSON.stringify({ type: 'game_state', game: updatedGame });
+      rooms.get(code)!.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) client.send(payload);
+      });
+    }
+    res.json({ success: true });
+  });
+
+  // Abort endpoint
+  app.post('/api/games/:code/abort', async (req, res) => {
+    const { code } = req.params;
+    const game = await storage.getGame(code);
+    if (!game) return res.status(404).json({ message: 'Game not found' });
+    
+    if (game.status === 'playing' && game.pgn && game.pgn.length > 0) {
+      return res.status(400).json({ message: 'Cannot abort after moves' });
+    }
+    
+    await storage.setGameStatus(code, 'aborted');
+    res.json({ success: true });
   });
 
   // WebSocket Server

@@ -8,6 +8,7 @@ export interface IStorage {
   updateGameState(code: string, fen: string, pgn: string, turn: string, lastMove: any, whiteTime: number, blackTime: number): Promise<Game>;
   setPlayer(code: string, role: 'w' | 'b', playerId: string): Promise<Game>;
   setWinner(code: string, winner: 'w' | 'b' | 'draw'): Promise<Game>;
+  setGameStatus(code: string, status: string): Promise<Game>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -67,6 +68,14 @@ export class DatabaseStorage implements IStorage {
   async setWinner(code: string, winner: 'w' | 'b' | 'draw'): Promise<Game> {
     const [game] = await db.update(games)
       .set({ winner, status: winner === 'draw' ? 'draw' : 'checkmate' })
+      .where(eq(games.code, code))
+      .returning();
+    return game;
+  }
+
+  async setGameStatus(code: string, status: string): Promise<Game> {
+    const [game] = await db.update(games)
+      .set({ status })
       .where(eq(games.code, code))
       .returning();
     return game;

@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [joinCode, setJoinCode] = useState("");
+  const [username, setUsername] = useState(() => {
+    return localStorage.getItem('chess_username') || '';
+  });
   const createGame = useCreateGame();
   const joinGame = useJoinGame();
   const { toast } = useToast();
@@ -59,6 +62,19 @@ export default function Home() {
 
         <div className="space-y-6">
           <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">Your Name (optional)</label>
+              <Input
+                placeholder="Enter your name"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  localStorage.setItem('chess_username', e.target.value);
+                }}
+                maxLength={20}
+                className="h-12 text-center"
+              />
+            </div>
             <Button 
               size="lg" 
               className="w-full text-lg h-16 font-semibold shadow-primary/25 shadow-xl hover:shadow-2xl hover:shadow-primary/40 transition-all hover:-translate-y-0.5"
