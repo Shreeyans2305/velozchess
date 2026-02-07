@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, MoveMessage } from "@shared/schema";
+import { WS_BASE_URL } from "@/lib/config";
 
 type UseGameSocketProps = {
   gameCode: string;
@@ -30,7 +31,7 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    const wsUrl = WS_BASE_URL || `${protocol}//${host}/ws`;
 
     console.log('[WebSocket] Attempting to connect to:', wsUrl);
     const socket = new WebSocket(wsUrl);

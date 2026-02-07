@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { useLocation } from "wouter";
+import { API_BASE_URL } from "@/lib/config";
 
 export function useCreateGame() {
   const [, setLocation] = useLocation();
@@ -12,7 +13,7 @@ export function useCreateGame() {
         increment: params?.increment || 0,
       };
       console.log('[Create Game] Sending:', payload);
-      const res = await fetch(api.games.create.path, {
+      const res = await fetch(`${API_BASE_URL}${api.games.create.path}`, {
         method: api.games.create.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -34,7 +35,7 @@ export function useJoinGame() {
 
   return useMutation({
     mutationFn: async (code: string) => {
-      const res = await fetch(api.games.join.path, {
+      const res = await fetch(`${API_BASE_URL}${api.games.join.path}`, {
         method: api.games.join.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
@@ -57,7 +58,7 @@ export function useJoinGame() {
 }
 
 export async function fetchGame(code: string) {
-  const url = buildUrl(api.games.get.path, { code });
+  const url = buildUrl(`${API_BASE_URL}${api.games.get.path}`, { code });
   const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 404) return null;
