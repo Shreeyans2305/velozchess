@@ -12,16 +12,20 @@ export const games = pgTable("games", {
   whiteId: text("white_id"), // Socket/Session ID
   blackId: text("black_id"), // Socket/Session ID
   winner: text("winner"), // 'w', 'b', or 'draw'
+  endReason: text("end_reason"), // 'checkmate', 'resignation', 'timeout', 'draw_agreement', 'stalemate', 'insufficient_material'
+  drawOfferedBy: text("draw_offered_by"), // 'w', 'b', or null
   lastMove: jsonb("last_move"), // Store the last move for highlighting { from, to }
   whiteTime: integer("white_time").notNull().default(600), // 10 minutes in seconds
   blackTime: integer("black_time").notNull().default(600), // 10 minutes in seconds
+  timeControl: integer("time_control").notNull().default(600), // Base time in seconds (default 10 min)
+  increment: integer("increment").notNull().default(0), // Increment in seconds per move
   lastMoveTime: timestamp("last_move_time").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertGameSchema = createInsertSchema(games).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertGameSchema = createInsertSchema(games).omit({
+  id: true,
+  createdAt: true
 });
 
 export type Game = typeof games.$inferSelect;

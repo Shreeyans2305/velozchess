@@ -4,11 +4,18 @@ import { useLocation } from "wouter";
 
 export function useCreateGame() {
   const [, setLocation] = useLocation();
-  
+
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params?: { timeControl?: number; increment?: number }) => {
+      const payload = {
+        timeControl: params?.timeControl || 600,
+        increment: params?.increment || 0,
+      };
+      console.log('[Create Game] Sending:', payload);
       const res = await fetch(api.games.create.path, {
         method: api.games.create.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to create game");
       return await res.json();

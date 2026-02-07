@@ -14,16 +14,10 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasConnectedRef = useRef(false);
 
-  const onGameStateUpdateRef = useRef(onGameStateUpdate);
-
-  useEffect(() => {
-    onGameStateUpdateRef.current = onGameStateUpdate;
-  }, [onGameStateUpdate]);
-
   useEffect(() => {
     // Prevent multiple connections
-    if (socketRef.current?.readyState === WebSocket.OPEN ||
-      socketRef.current?.readyState === WebSocket.CONNECTING) {
+    if (socketRef.current?.readyState === WebSocket.OPEN || 
+        socketRef.current?.readyState === WebSocket.CONNECTING) {
       console.log('[WebSocket] Already connected or connecting, skipping');
       return;
     }
@@ -39,7 +33,7 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socket.onopen = () => {
       hasConnectedRef.current = true;
       setIsConnected(true);
-
+      
       if (socket.readyState === WebSocket.OPEN) {
         const joinMsg = { type: "join", code: gameCode, playerId: getPlayerId() };
         socket.send(JSON.stringify(joinMsg));
@@ -49,11 +43,9 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
+        
         if (data.type === "game_state") {
-          if (onGameStateUpdateRef.current) {
-            onGameStateUpdateRef.current(data.game);
-          }
+          onGameStateUpdate(data.game);
         } else if (data.type === "error") {
           toast({
             variant: "destructive",
@@ -68,7 +60,7 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
 
     socket.onclose = (event) => {
       setIsConnected(false);
-
+      
       // Only reconnect if we had connected before
       if (hasConnectedRef.current && !reconnectTimeoutRef.current) {
         reconnectTimeoutRef.current = setTimeout(() => {
@@ -124,7 +116,7 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
     }
   };
 
-  return { isConnected, sendMove, sendMessage: (message: any) => { if (socketRef.current?.readyState === WebSocket.OPEN) { socketRef.current.send(JSON.stringify(message)); } } };
+  return { isConnected, sendMove };
 }
 
 function getPlayerId() {

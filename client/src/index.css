@@ -5,51 +5,74 @@
 @tailwind utilities;
 
 :root {
-  /* Dark, premium gaming palette */
-  --background: 240 10% 4%;
-  --foreground: 0 0% 98%;
+  /* High-End Editorial / Minimalist Palette */
 
-  --card: 240 10% 6%;
-  --card-foreground: 0 0% 98%;
+  /* Background: Warm Off-White / Greige */
+  --background: 60 10% 96%;
+  /* #F5F5F3 */
+  --foreground: 0 0% 10%;
+  /* #1A1A1A - Deep Charcoal */
 
-  --popover: 240 10% 6%;
-  --popover-foreground: 0 0% 98%;
+  /* Cards are transparent or very subtle overlay */
+  --card: 60 10% 96%;
+  --card-foreground: 0 0% 10%;
 
-  /* Vibrant primary color - Electric Purple/Blue */
-  --primary: 265 85% 65%;
-  --primary-foreground: 210 40% 98%;
+  --popover: 60 10% 96%;
+  --popover-foreground: 0 0% 10%;
 
-  --secondary: 240 5% 15%;
-  --secondary-foreground: 0 0% 98%;
+  /* Primary Accent - Charcoal */
+  --primary: 0 0% 10%;
+  --primary-foreground: 60 10% 96%;
 
-  --muted: 240 5% 15%;
-  --muted-foreground: 240 5% 65%;
+  /* Secondary - Soft Taupe/Grey */
+  --secondary: 0 0% 90%;
+  --secondary-foreground: 0 0% 10%;
 
-  --accent: 265 85% 65%;
-  --accent-foreground: 210 40% 98%;
+  /* Muted Text */
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 40%;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
+  /* Accent - Gold (Use sparingly) */
+  --accent: 40 48% 56%;
+  /* #C5A059 */
+  --accent-foreground: 0 0% 10%;
 
-  --border: 240 5% 15%;
-  --input: 240 5% 15%;
-  --ring: 265 85% 65%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 60 10% 96%;
 
-  --radius: 0.75rem;
+  /* Borders - Very subtle */
+  --border: 0 0% 85%;
+  --input: 0 0% 85%;
+  --ring: 0 0% 10%;
 
-  --font-display: 'Space Grotesk', sans-serif;
+  --radius: 0rem;
+  /* Sharp corners */
+
+  /* Typography */
+  --font-display: 'Playfair Display', serif;
   --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Chess Board Colors - Coffee Theme */
+  --board-light: 40 40% 90%;
+  /* #F0E6D2 - Frothy Cream */
+  --board-dark: 28 40% 50%;
+  /* #B27F51 - Roasted Coffee */
 }
 
 @layer base {
   body {
     @apply bg-background text-foreground antialiased font-body;
-    background-image: 
-      radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.08), transparent 25%), 
-      radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+    /* Soft Paper Texture Effect (Optional) */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-display tracking-tight;
   }
 }
@@ -58,9 +81,11 @@
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   @apply bg-secondary/50;
 }
+
 ::-webkit-scrollbar-thumb {
   @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
 }

@@ -1,6 +1,6 @@
 import { Game } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
-import { Crown, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Crown, AlertTriangle, CheckCircle2, Clock, Flag, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameStatusProps {
@@ -18,18 +18,57 @@ export function GameStatus({ game, playerRole }: GameStatusProps) {
     statusText = "Waiting for opponent...";
     statusColor = "bg-yellow-500/20 text-yellow-500 border-yellow-500/20";
     Icon = Clock;
-  } else if (game.status === 'checkmate') {
-    const winnerName = game.winner === 'w' ? "White" : "Black";
+  } else if (game.status === 'checkmate' || game.status === 'draw') {
+    // Handle game end with specific reasons
     const won = (game.winner === playerRole);
-    statusText = won ? "Victory! Checkmate." : `Checkmate. ${winnerName} wins!`;
-    statusColor = won 
-      ? "bg-green-500/20 text-green-500 border-green-500/20"
-      : "bg-red-500/20 text-red-500 border-red-500/20";
-    Icon = Crown;
-  } else if (game.status === 'draw') {
-    statusText = "Game Over. Draw.";
-    statusColor = "bg-secondary text-muted-foreground";
-    Icon = AlertTriangle;
+    const winnerName = game.winner === 'w' ? "White" : game.winner === 'b' ? "Black" : null;
+
+    if (game.endReason === 'checkmate') {
+      statusText = won ? "Victory! Checkmate." : `Checkmate. ${winnerName} wins!`;
+      statusColor = won
+        ? "bg-green-500/20 text-green-500 border-green-500/20"
+        : "bg-red-500/20 text-red-500 border-red-500/20";
+      Icon = Crown;
+    } else if (game.endReason === 'resignation') {
+      const loserName = game.winner === 'w' ? "Black" : "White";
+      statusText = won ? `Victory! ${loserName} resigned.` : `${loserName} resigned. ${winnerName} wins!`;
+      statusColor = won
+        ? "bg-green-500/20 text-green-500 border-green-500/20"
+        : "bg-red-500/20 text-red-500 border-red-500/20";
+      Icon = Flag;
+    } else if (game.endReason === 'timeout') {
+      const loserName = game.winner === 'w' ? "Black" : "White";
+      statusText = won ? `Victory! ${loserName} ran out of time.` : `${loserName} ran out of time. ${winnerName} wins!`;
+      statusColor = won
+        ? "bg-green-500/20 text-green-500 border-green-500/20"
+        : "bg-red-500/20 text-red-500 border-red-500/20";
+      Icon = Timer;
+    } else if (game.endReason === 'draw_agreement') {
+      statusText = "Draw by agreement";
+      statusColor = "bg-secondary text-muted-foreground";
+      Icon = AlertTriangle;
+    } else if (game.endReason === 'stalemate') {
+      statusText = "Draw by stalemate";
+      statusColor = "bg-secondary text-muted-foreground";
+      Icon = AlertTriangle;
+    } else if (game.endReason === 'insufficient_material') {
+      statusText = "Draw by insufficient material";
+      statusColor = "bg-secondary text-muted-foreground";
+      Icon = AlertTriangle;
+    } else {
+      // Fallback for old games without endReason
+      if (game.status === 'checkmate') {
+        statusText = won ? "Victory! Checkmate." : `Checkmate. ${winnerName} wins!`;
+        statusColor = won
+          ? "bg-green-500/20 text-green-500 border-green-500/20"
+          : "bg-red-500/20 text-red-500 border-red-500/20";
+        Icon = Crown;
+      } else {
+        statusText = "Game Over. Draw.";
+        statusColor = "bg-secondary text-muted-foreground";
+        Icon = AlertTriangle;
+      }
+    }
   } else if (game.status === 'aborted') {
     statusText = "Game Aborted";
     statusColor = "bg-destructive/20 text-destructive";

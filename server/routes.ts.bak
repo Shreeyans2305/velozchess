@@ -161,12 +161,7 @@ export async function registerRoutes(
           }
 
           // Validate move
-          const chess = new Chess();
-          if (game.pgn) {
-            chess.loadPgn(game.pgn);
-          } else {
-            chess.load(game.fen);
-          }
+          const chess = new Chess(game.fen);
           try {
             const move = chess.move({
               from: message.from,
@@ -212,24 +207,6 @@ export async function registerRoutes(
           } catch (e) {
             ws.send(JSON.stringify({ type: 'error', message: 'Invalid move' }));
           }
-        }
-
-        if (message.type === 'offer_draw') {
-          if (!gameCode) return;
-          const game = await storage.offerDraw(gameCode, message.player);
-          broadcast(gameCode, { type: 'game_state', game });
-        }
-
-        if (message.type === 'accept_draw') {
-          if (!gameCode) return;
-          const game = await storage.acceptDraw(gameCode);
-          broadcast(gameCode, { type: 'game_state', game });
-        }
-
-        if (message.type === 'decline_draw') {
-          if (!gameCode) return;
-          const game = await storage.declineDraw(gameCode);
-          broadcast(gameCode, { type: 'game_state', game });
         }
       } catch (e) {
         console.error('WS Error:', e);

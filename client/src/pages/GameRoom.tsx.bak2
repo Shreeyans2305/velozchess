@@ -1,0 +1,369 @@
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useRoute, useLocation } from "wouter";
+import { Chess, type Square } from "chess.js";
+import { fetchGame } from "@/hooks/use-games";
+import { useGameSocket } from "@/hooks/use-game-socket";
+import { ChessBoard } from "@/components/ChessBoard";
+import { GameStatus } from "@/components/GameStatus";
+import { MaterialCount } from "@/components/MaterialCount";
+import { CopyCode } from "@/components/CopyCode";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DrawOfferDialog } from "@/components/DrawOfferDialog";
+import { useToastNotification } from "@/components/ToastNotification";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, WifiOff, Crown, Copy, AlertTriangle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Game } from "@shared/schema";
+
+export default function GameRoom() {
+  const [, params] = useRoute("/game/:code");
+  const [, setLocation] = useLocation();
+  const code = params?.code!;
+
+  const [game, setGame] = useState<Game | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<'w' | 'b' | 'spectator'>('spectator');
+  const [liveWhiteTime, setLiveWhiteTime] = useState(game?.timeControl || 600);
+  const [liveBlackTime, setLiveBlackTime] = useState(game?.timeControl || 600);
+  const [preMove, setPreMove] = useState<{ from: Square, to: Square } | null>(null);
+  const [showResignDialog, setShowResignDialog] = useState(false);
+  const [showDrawDialog, setShowDrawDialog] = useState(false);
+  const { showToast, ToastComponent } = useToastNotification();
+
+  const chess = useMemo(() => new Chess(), []);
+
+  const handleGameStateUpdate = useCallback((updatedGame: Game) => {
+    setGame(updatedGame);
+    chess.load(updatedGame.fen);
+  }, [chess]);
+
+  const { isConnected, sendMove } = useGameSocket({
+    gameCode: code,
+    onGameStateUpdate: handleGameStateUpdate,
+  });
+
+  // Execute pre-move when turn changes
+  useEffect(() => {
+    if (!game || !preMove || game.turn !== role || game.status !== 'playing') return;
+
+    try {
+      const move = chess.move({
+        from: preMove.from,
+        to: preMove.to,
+        promotion: "q",
+      });
+
+      if (move) {
+        sendMove({
+          from: preMove.from,
+          to: preMove.to,
+          promotion: "q",
+        });
+      }
+    } catch (e) {
+      console.error('[PreMove] Invalid pre-move:', e);
+    }
+
+    setPreMove(null);
+  }, [game?.turn, game?.status, role]);
+
+  // Initialize timers from game's custom time control
+  useEffect(() => {
+    if (game && game.timeControl) {
+      setLiveWhiteTime(game.whiteTime);
+      setLiveBlackTime(game.blackTime);
+    }
+  }, [game?.timeControl, game?.whiteTime, game?.blackTime]);
+
+
+  useEffect(() => {
+    if (!game || game.status !== 'playing') return;
+
+    setLiveWhiteTime(game.whiteTime);
+    setLiveBlackTime(game.blackTime);
+
+    const interval = setInterval(() => {
+      if (game.turn === 'w') {
+        setLiveWhiteTime(prev => Math.max(0, prev - 1));
+      } else {
+        setLiveBlackTime(prev => Math.max(0, prev - 1));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [game?.whiteTime, game?.blackTime, game?.turn, game?.status]);
+
+  // Handle Escape key to cancel pre-move
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && game?.status === 'playing') {
+        setPreMove(null);
+        console.log('[PreMove] Cleared pre-move via Escape key');
+      }
+    };
+
+
+  const handleOfferDraw = () => {
+    if (!game || game.status !== 'playing' || !sendMessage) return;
+    sendMessage({ type: 'offer_draw', code: game.code, player: role });
+  };
+
+  const handleAcceptDraw = () => {
+    if (!game || !sendMessage) return;
+    sendMessage({ type: 'accept_draw', code: game.code });
+    setShowDrawDialog(false);
+  };
+
+  const handleDeclineDraw = () => {
+    if (!game || !sendMessage) return;
+    sendMessage({ type: 'decline_draw', code: game.code });
+    setShowDrawDialog(false);
+  };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [game?.status]);
+
+  useEffect(() => {
+    if (!code) return;
+
+    const storedRole = sessionStorage.getItem(`game_role_${code}`);
+    if (storedRole) setRole(storedRole as any);
+
+    fetchGame(code)
+      .then((data) => {
+        setGame(data);
+        chess.load(data.fen);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLocation("/");
+      });
+  }, [code, chess, setLocation]);
+
+  const onPieceDrop = (sourceSquare: Square, targetSquare: Square, piece: string) => {
+    if (!game) return false;
+    if (game.status !== "playing") return false;
+
+    if (game.turn !== role) {
+      // Set single pre-move
+      setPreMove({ from: sourceSquare, to: targetSquare });
+      return true;
+    }
+
+    // Clear pre-move when making actual move
+    setPreMove(null);
+
+    try {
+      const move = chess.move({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: piece[1].toLowerCase() ?? "q",
+      });
+
+      if (!move) return false;
+
+      sendMove({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: "q",
+      });
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const handleResign = async () => {
+    if (!game || game.status !== 'playing') return;
+    try {
+      const response = await fetch(`/api/games/${game.code}/resign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: localStorage.getItem('chess_player_id') || '', role }),
+      });
+      if (!response.ok) throw new Error('Failed to resign');
+      setShowResignDialog(false);
+    } catch (error) {
+      console.error('Resign error:', error);
+      setShowResignDialog(false);
+    }
+  };
+
+  const handleCopyPGN = async () => {
+    if (!game?.pgn) return;
+    try {
+      await navigator.clipboard.writeText(game.pgn);
+      showToast('PGN copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy PGN:', error);
+      showToast('Failed to copy PGN');
+    }
+  };
+
+  const handleAbort = async () => {
+    if (!game || game.status !== 'waiting') return;
+    const confirmed = window.confirm('Abort this game?');
+    if (!confirmed) return;
+    try {
+      const response = await fetch(`/api/games/${game.code}/abort`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: localStorage.getItem('chess_player_id') || '' }),
+      });
+      if (!response.ok) throw new Error('Failed to abort');
+      setLocation('/');
+    } catch (error) {
+      console.error('Abort error:', error);
+    }
+  };
+
+  const isBoardVisible =
+    game?.status === "playing" ||
+    game?.status === "checkmate" ||
+    game?.status === "draw" ||
+    (!!game?.whiteId && !!game?.blackId);
+
+  if (loading || !game) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-8 p-4">
+        <Skeleton className="w-[300px] h-[300px] rounded-lg" />
+        <div className="space-y-2 w-full max-w-xs">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      </div>
+    );
+  }
+
+  const lastMove = game.lastMove as { from: string; to: string } | null;
+
+  return (
+    <div className="min-h-screen flex flex-col items-center p-4 bg-background relative">
+      <AnimatePresence>
+        {!isConnected && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 bg-destructive text-destructive-foreground p-2 text-center text-sm font-medium z-50 flex items-center justify-center gap-2"
+          >
+            <WifiOff className="w-4 h-4" />
+            Connection lost. Reconnecting...
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-6 items-start justify-center mt-4 md:mt-8">
+        {/* Left sidebar - Game info */}
+        <div className="w-full lg:w-80 flex flex-col gap-4 order-2 lg:order-1">
+          <div className="flex items-center gap-2 mb-2">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h2 className="font-bold text-xl">Game Room</h2>
+          </div>
+
+          <GameStatus game={game} playerRole={role} />
+          <MaterialCount fen={game.fen} />
+
+          <div className="space-y-3 mt-4">
+            <div className={`p-4 rounded-xl border ${game.turn === "w" ? "bg-primary/10 border-primary/30" : "bg-card border-border"} ${liveWhiteTime < 30 ? 'animate-pulse border-red-500' : ''}`}>
+              <div className="text-xs uppercase text-muted-foreground font-bold tracking-wider mb-1 flex justify-between">
+                <span>White</span>
+                <span className="font-mono text-lg">{Math.floor(liveWhiteTime / 60)}:{(liveWhiteTime % 60).toString().padStart(2, '0')}</span>
+              </div>
+              <div className="font-medium flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                {game.whiteId ? (role === "w" ? (localStorage.getItem('chess_username') || "You") : "Opponent") : "Waiting..."}
+              </div>
+            </div>
+            <div className={`p-4 rounded-xl border ${game.turn === "b" ? "bg-primary/10 border-primary/30" : "bg-card border-border"} ${liveBlackTime < 30 ? 'animate-pulse border-red-500' : ''}`}>
+              <div className="text-xs uppercase text-muted-foreground font-bold tracking-wider mb-1 flex justify-between">
+                <span>Black</span>
+                <span className="font-mono text-lg">{Math.floor(liveBlackTime / 60)}:{(liveBlackTime % 60).toString().padStart(2, "0")}</span>
+              </div>
+              <div className="font-medium flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-black border border-white/20" />
+                {game.blackId ? (role === "b" ? (localStorage.getItem('chess_username') || "You") : "Opponent") : "Waiting..."}
+              </div>
+            </div>
+          </div>
+
+          {game.status === "waiting" && (
+            <div className="mt-4 p-4 bg-secondary/30 rounded-xl border border-white/5">
+              <CopyCode code={game.code} />
+            </div>
+          )}
+
+          {game.status === 'playing' && role !== 'spectator' && (
+            <div className="mt-4">
+              <Button variant="destructive" className="w-full" onClick={() => setShowResignDialog(true)}>Resign</Button>
+            
+              <Button variant="outline" className="w-full mt-2" onClick={handleOfferDraw} disabled={!!game.drawOfferedBy}>
+                {game.drawOfferedBy === role ? 'Draw Offered' : 'Offer Draw'}
+              </Button>
+            </div>
+          )}
+
+          {game.status === 'waiting' && game.whiteId && !game.blackId && (
+            <div className="mt-4">
+              <Button variant="outline" className="w-full" onClick={handleAbort}>Abort Game</Button>
+            </div>
+          )}
+
+          {(game.status === 'checkmate' || game.status === 'draw' || game.status === 'aborted') && game.pgn && (
+            <div className="mt-4">
+              <Button variant="outline" className="w-full flex items-center gap-2" onClick={handleCopyPGN}>
+                <Copy className="w-4 h-4" />
+                Copy PGN
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Center - Chess Board */}
+        <div className="order-1 lg:order-2 flex-1 flex items-center justify-center">
+          {isBoardVisible ? (
+            <ChessBoard
+              fen={game.fen}
+              onPieceDrop={onPieceDrop}
+              orientation={role === "b" ? "black" : "white"}
+              lastMove={lastMove}
+              isInteractable={game.status === "playing"}
+              preMove={preMove}
+            />
+          ) : (
+            <div className="w-full max-w-[min(90vw,500px)] md:max-w-[550px] lg:max-w-[600px] aspect-square flex flex-col items-center justify-center bg-card rounded-lg border-4 border-dashed border-muted-foreground/20">
+              <Crown className="w-16 h-16 text-muted-foreground/20 mb-4" />
+              <p className="text-muted-foreground font-medium">Waiting for opponent to join...</p>
+              <div className="mt-6">
+                <CopyCode code={game.code} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Resign Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showResignDialog}
+        title="Resign Game?"
+        message="Are you sure you want to resign? This will end the game and your opponent will win."
+        confirmText="Resign"
+        cancelText="Continue Playing"
+        onConfirm={handleResign}
+        onCancel={() => setShowResignDialog(false)}
+      />
+      {ToastComponent}
+    </div>
+  );
+}
+
+      <DrawOfferDialog
+        open={showDrawDialog}
+        onAccept={handleAcceptDraw}
+        onDecline={handleDeclineDraw}
+      />
+      
