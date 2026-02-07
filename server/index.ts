@@ -9,6 +9,31 @@ import dns from "dns";
 // Force IPv4 ordering to prevent ENETUNREACH errors on Render with Supabase
 dns.setDefaultResultOrder("ipv4first");
 
+// CRITICAL FIX: Monkey-patch dns.lookup to strictly force IPv4.
+// This is necessary because some environments ignore setDefaultResultOrder.
+const originalLookup = dns.lookup;
+// @ts-ignore
+dns.lookup = (hostname: string, options: any, callback: any) => {
+  let opts = options;
+  let cb = callback;
+
+  if (typeof options === "function") {
+    cb = options;
+    opts = {};
+  } else if (typeof options === "number") {
+    // If options is a number (family), ignore it and use 4
+    opts = { family: 4 };
+  } else if (!opts) {
+    opts = {};
+  }
+
+  // Force IP family 4
+  opts.family = 4;
+  opts.hints = (opts.hints || 0) | dns.ADDRCONFIG | dns.V4MAPPED;
+
+  return originalLookup(hostname, opts, cb);
+};
+
 const app = express();
 const httpServer = createServer(app);
 
