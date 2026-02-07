@@ -3,6 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { Chess, type Square } from "chess.js";
 import { fetchGame } from "@/hooks/use-games";
 import { useGameSocket } from "@/hooks/use-game-socket";
+import { API_BASE_URL } from "@/lib/config";
 import { ChessBoard } from "@/components/ChessBoard";
 import { GameStatus } from "@/components/GameStatus";
 import { MaterialCount } from "@/components/MaterialCount";
@@ -171,7 +172,7 @@ export default function GameRoom() {
   const handleResign = async () => {
     if (!game || game.status !== 'playing') return;
     try {
-      const response = await fetch(`/api/games/${game.code}/resign`, {
+      const response = await fetch(`${API_BASE_URL}/api/games/${game.code}/resign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId: localStorage.getItem('chess_player_id') || '', role }),
@@ -201,7 +202,7 @@ export default function GameRoom() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/games/${game.code}/abort`, {
+      const response = await fetch(`${API_BASE_URL}/api/games/${game.code}/abort`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId: localStorage.getItem('chess_player_id') || '' }),
