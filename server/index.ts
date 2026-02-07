@@ -4,6 +4,10 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import cors from "cors";
 import { createServer } from "http";
+import dns from "dns";
+
+// Force IPv4 ordering to prevent ENETUNREACH errors on Render with Supabase
+dns.setDefaultResultOrder("ipv4first");
 
 const app = express();
 const httpServer = createServer(app);

@@ -86,8 +86,10 @@ We use a tool called `drizzle-kit` to push your local schema definition (in `sha
 -   **Password Authentication Failed (Still failing?)**:
     1.  **Wrong Password**: It is very common to mistake the *Database* password for the *Supabase Account* password. They are different.
         -   **Fix**: Go to Supabase Dashboard -> Project Settings -> Database -> **Reset Database Password**. Set a new, simple password (alphanumeric only, no symbols) to test.
-    2.  **Try Direct Connection**: The pooling connection (port 6543) can sometimes be finicky with certain drivers.
-        -   Try using the **Direct Connection** string (port 5432) instead. It looks like: `postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres` (Change `6543` to `5432`).
+    -   **Connection Issues (IPv6/IPv4)**:
+        -   If you see `ECONNREFUSED` or **`ENETUNREACH`** (especially on Render), it means the server cannot reach the database via IPv6.
+        -   **Fix 1**: Change the port from `5432` to **`6543`** in your `DATABASE_URL` on Render.
+        -   **Fix 2**: I have added code to force IPv4 (`dns.setDefaultResultOrder('ipv4first')`), so re-deploying usually also fixes this.
 -   **Connection Error**: Double-check your password and ensuring you are using the correct host (aws-0-[region]....).
 -   **SSL Error**: If you see SSL errors, you may need to append `?sslmode=require` to the end of your connection string.
 
