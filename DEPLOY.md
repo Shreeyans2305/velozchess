@@ -46,8 +46,8 @@ This guide will walk you through deploying your Veloz Chess application using:
 5.  **Environment Variables**:
     -   Scroll down to "Environment Variables" and add:
         -   `DATABASE_URL`: Paste the Supabase connection string from Step 1.
-        -   `NODE_ENV`: `production`
         -   `VITE_FRONTEND_URL`: `https://your-vercel-app-name.vercel.app` (You can add this later after deploying the frontend, or use `*` temporarily).
+    -   **Note**: Do NOT set `NODE_ENV` to `production` here, as it will prevent the installation of build dependencies. The start command handles this automatically.
 6.  Click **Create Web Service**.
 7.  Wait for the deployment to finish. Copy the **Service URL** (e.g., `https://veloz-chess-backend.onrender.com`).
 
