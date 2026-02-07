@@ -9,8 +9,9 @@ const app = express();
 const httpServer = createServer(app);
 
 // Configure CORS
+const allowedOrigin = process.env.VITE_FRONTEND_URL ? process.env.VITE_FRONTEND_URL.replace(/\/$/, "") : "*";
 app.use(cors({
-  origin: process.env.VITE_FRONTEND_URL || "*",
+  origin: allowedOrigin,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -88,8 +89,19 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
   if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
+    // Only serve static files if NOT explicitly disabled
+    if (process.env.DISABLE_STATIC_SERVING !== "true") {
+      try {
+        serveStatic(app);
+      } catch (e) {
+        console.warn("Static file serving skipped:", e);
+      }
+    }
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);

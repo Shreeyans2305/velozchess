@@ -47,6 +47,7 @@ This guide will walk you through deploying your Veloz Chess application using:
     -   Scroll down to "Environment Variables" and add:
         -   `DATABASE_URL`: Paste the Supabase connection string from Step 1.
         -   `VITE_FRONTEND_URL`: `https://your-vercel-app-name.vercel.app` (You can add this later after deploying the frontend, or use `*` temporarily).
+            -   **Important**: Ensure there is **NO trailing slash** at the end (e.g., `...app`, NOT `...app/`).
     -   **Note**: Do NOT set `NODE_ENV` to `production` here, as it will prevent the installation of build dependencies. The start command handles this automatically.
 6.  Click **Create Web Service**.
 7.  Wait for the deployment to finish. Copy the **Service URL** (e.g., `https://veloz-chess-backend.onrender.com`).
@@ -55,14 +56,40 @@ This guide will walk you through deploying your Veloz Chess application using:
 
 ## Step 3: Database Migration
 
-After your backend is deployed, it should automatically connect to the database. However, you need to run migrations to create the tables.
-You can run migrations locally pointing to the production database:
+When you create a new database on Supabase, it is empty. Your application code expects certain tables (like `users` and `games`) to exist. **Migrations** are the process of creating these tables.
 
-1.  In your local terminal:
+We use a tool called `drizzle-kit` to push your local schema definition (in `shared/schema.ts`) to the remote database.
+
+**Run this command in your LOCAL terminal (not on Render):**
+
+1.  Open your terminal in the project folder.
+2.  Run the following command, replacing the value with your actual Supabase connection string:
     ```bash
-    DATABASE_URL="your-supabase-connection-string" npm run db:push
+    # Linux/Mac (Use single quotes to avoid issues with special characters like !)
+    DATABASE_URL='postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres' npm run db:push
+
+    # Windows (PowerShell)
+    $env:DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"; npm run db:push
     ```
-    (Replace the string with your actual Supabase connection string).
+    *(If your password still causes issues, you may need to URL encode special characters)*
+3.  You should see output indicating that tables are being created.
+    -   If it asks to approve changes, type `y` and press Enter.
+    -   If it says "No changes detected", your database is already up to date.
+
+**Troubleshooting:**
+-   **Connection Refused (IPv6 Issue)**: If you see `ECONNREFUSED` with an IPv6 address (like `2406:da1a...`), it means your network is blocking the direct IPv6 connection to Supabase.
+    -   **Fix**: Switch back to port **6543** (the pooler port), which usually handles IPv4 better.
+    -   **Important**: Ensure you remove the square brackets `[]` around your password!
+        -   **Wrong**: `...:postgres:[MyPassword]@...`
+        -   **Right**: `...:postgres:MyPassword@...`
+
+-   **Password Authentication Failed (Still failing?)**:
+    1.  **Wrong Password**: It is very common to mistake the *Database* password for the *Supabase Account* password. They are different.
+        -   **Fix**: Go to Supabase Dashboard -> Project Settings -> Database -> **Reset Database Password**. Set a new, simple password (alphanumeric only, no symbols) to test.
+    2.  **Try Direct Connection**: The pooling connection (port 6543) can sometimes be finicky with certain drivers.
+        -   Try using the **Direct Connection** string (port 5432) instead. It looks like: `postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres` (Change `6543` to `5432`).
+-   **Connection Error**: Double-check your password and ensuring you are using the correct host (aws-0-[region]....).
+-   **SSL Error**: If you see SSL errors, you may need to append `?sslmode=require` to the end of your connection string.
 
 ---
 
@@ -76,7 +103,10 @@ You can run migrations locally pointing to the production database:
     -   **Root Directory**: `client` (IMPORTANT: Change this from `.` to `client` if you want Vercel to only build the client, BUT since our root `package.json` handles the build, it's safer to keep Root Directory as `.` if you follow standard monorepo patterns, but for this specific setup:
         -   **Root Directory**: `.` (Leave as default)
         -   **Build Command**: `npm run build` (This builds everything, but Vercel primarily hosts the static files in `dist/public`).
-        -   **Output Directory**: `dist/public` (You need to override the default `dist` to `dist/public` because that's where `vite` puts the frontend build in our custom script).
+        -   **Output Directory**: `dist/public`
+            > [!IMPORTANT]
+            > **YOU MUST CHANGE THIS.** The default is usually `dist`. You **MUST** change it to `dist/public`.
+            > If you don't do this, Vercel will try to serve your backend code (`dist/index.cjs`) instead of your website, causing the "file download" issue.
 5.  **Environment Variables**:
     -   Add `VITE_API_URL`: Paste your Render Backend URL (e.g., `https://veloz-chess-backend.onrender.com`).
     -   Add `VITE_WS_URL`: Paste the Render URL but replace `https://` with `wss://` (e.g., `wss://veloz-chess-backend.onrender.com`).
