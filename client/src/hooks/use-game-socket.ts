@@ -31,7 +31,14 @@ export function useGameSocket({ gameCode, onGameStateUpdate }: UseGameSocketProp
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    const wsUrl = WS_BASE_URL || `${protocol}//${host}/ws`;
+    let baseUrl = WS_BASE_URL || `${protocol}//${host}`;
+
+    // Ensure clean URL construction with /ws path to match server
+    baseUrl = baseUrl.replace(/\/$/, "");
+    if (!baseUrl.endsWith("/ws")) {
+      baseUrl += "/ws";
+    }
+    const wsUrl = baseUrl;
 
     console.log('[WebSocket] Attempting to connect to:', wsUrl);
     const socket = new WebSocket(wsUrl);
