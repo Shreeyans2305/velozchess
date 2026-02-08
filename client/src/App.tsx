@@ -17,12 +17,15 @@ function Router() {
   );
 }
 
+import { Analytics } from "@vercel/analytics/react";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Router />
+        <Analytics />
       </TooltipProvider>
     </QueryClientProvider>
   );
